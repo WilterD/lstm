@@ -1,0 +1,24 @@
+/* Input.css */
+.input {
+  display: inline-block;
+  padding: 10px;
+  font-size: 16px;
+  color: #333;
+  background-color: #f8f9fa;
+  border: 1px solid #ced4da;
+  border-radius: 4px;
+  width: 100%;
+}
+.input:focus {
+  border-color: #80bdff;
+  outline: none;
+  box-shadow: 0 0 0 0.2rem rgba(0,123,255,.25);
+}
+.input::placeholder {
+  color: #6c757d;
+  opacity: 1; /* Ensures placeholder is fully opaque */
+}
+.input:disabled {
+  background-color: #e9ecef;
+  opacity: 1; /* Ensures disabled input is fully opaque */
+}
