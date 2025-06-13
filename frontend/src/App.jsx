@@ -34,17 +34,17 @@ const App = () => {
     }
   };
 
-  const fetchHistoricalData = async (cityName) => {
+  const fetchHistoricalData = async (cityName, days) => {
     try {
       setLoading(true);
       const response = await fetch(`${API_BASE}/data/${cityName}`);
       if (!response.ok) throw new Error('Error al cargar datos históricos');
       const data = await response.json();
       
-      // Formatear datos para el gráfico
+      // Formatear datos para el gráfico - solo los últimos días especificados
       const formattedData = data
         .filter(item => item[cityName] !== null)
-        .slice(-30) // Últimos 30 días
+        .slice(-days) // Solo los últimos días solicitados
         .map(item => ({
           fecha: item.fecha,
           nivel: item[cityName],
@@ -77,16 +77,19 @@ const App = () => {
       if (!response.ok) throw new Error('Error al hacer predicción');
       const data = await response.json();
       
-      const formattedPredictions = data.predictions.map(pred => ({
-        fecha: pred.fecha,
-        nivel: pred.predicted_level,
-        type: 'predicción'
-      }));
+      // Solo tomar exactamente los días solicitados
+      const formattedPredictions = data.predictions
+        .slice(0, daysToPredict)
+        .map(pred => ({
+          fecha: pred.fecha,
+          nivel: pred.predicted_level,
+          type: 'predicción'
+        }));
       
       setPredictions(formattedPredictions);
       
-      // También cargar datos históricos para comparar
-      await fetchHistoricalData(selectedCity);
+      // Cargar datos históricos con la misma cantidad de días para contexto
+      await fetchHistoricalData(selectedCity, daysToPredict);
       
     } catch (err) {
       setError('Error al hacer predicción: ' + err.message);
@@ -113,11 +116,14 @@ const App = () => {
       if (!response.ok) throw new Error('Error al comparar modelos');
       const data = await response.json();
       
-      const formattedComparison = data.comparison.map(comp => ({
-        fecha: comp.fecha,
-        actual: comp.actual,
-        predicho: comp.predicted
-      }));
+      // Solo tomar exactamente los días solicitados
+      const formattedComparison = data.comparison
+        .slice(0, daysToPredict)
+        .map(comp => ({
+          fecha: comp.fecha,
+          actual: comp.actual,
+          predicho: comp.predicted
+        }));
       
       setComparison(formattedComparison);
       
@@ -135,6 +141,7 @@ const App = () => {
     palua: 'Palúa'
   };
 
+  // Para el gráfico de predicciones, combinar históricos + predicciones
   const combinedData = [...historicalData, ...predictions];
 
   return (
@@ -247,8 +254,11 @@ const App = () => {
           {activeTab === 'predict' && (
             <div>
               <h3 className="text-xl font-semibold mb-4">
-                Datos Históricos y Predicciones - {cityNames[selectedCity] || selectedCity}
+                Predicciones para {daysToPredict} días - {cityNames[selectedCity] || selectedCity}
               </h3>
+              <p className="text-sm text-gray-600 mb-4">
+                Datos históricos ({historicalData.length} días) + Predicciones ({predictions.length} días)
+              </p>
               {combinedData.length > 0 ? (
                 <ResponsiveContainer width="100%" height={400}>
                   <LineChart data={combinedData}>
@@ -285,8 +295,11 @@ const App = () => {
           {activeTab === 'compare' && (
             <div>
               <h3 className="text-xl font-semibold mb-4">
-                Comparación Modelo vs Realidad - {cityNames[selectedCity] || selectedCity}
+                Comparación para {daysToPredict} días - {cityNames[selectedCity] || selectedCity}
               </h3>
+              <p className="text-sm text-gray-600 mb-4">
+                Comparando {comparison.length} días de predicciones vs valores reales
+              </p>
               {comparison.length > 0 ? (
                 <ResponsiveContainer width="100%" height={400}>
                   <LineChart data={comparison}>
@@ -343,7 +356,7 @@ const App = () => {
                 <div className="bg-white rounded-lg shadow p-6 text-center">
                   <h4 className="text-lg font-semibold text-gray-700">Nivel Promedio</h4>
                   <p className="text-3xl font-bold text-green-600">
-                    {(predictions.reduce((acc, p) => acc + p.nivel, 0) / predictions.length).toFixed(2)}
+                    {predictions.length > 0 ? (predictions.reduce((acc, p) => acc + p.nivel, 0) / predictions.length).toFixed(2) : '0.00'}
                   </p>
                   <p className="text-sm text-gray-500">nivel predicho</p>
                 </div>
