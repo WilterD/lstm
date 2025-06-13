@@ -48,6 +48,8 @@ def get_city_data(city_name):
     
     data = df[['fecha', city_name]].copy()
     data['fecha'] = data['fecha'].dt.strftime('%Y-%m-%d')
+
+    data = data.replace({np.nan: None})
     
     return jsonify(data.to_dict('records'))
 

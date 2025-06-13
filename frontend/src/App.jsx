@@ -1,10 +1,11 @@
 import { useState, useEffect } from 'react'
-import { Button } from '@/components/ui/button.jsx'
+import Button from '@/components/ui/button';
 
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card.jsx'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select.jsx'
-import { Input } from '@/components/ui/input.jsx'
-import { Label } from '@/components/ui/label.jsx'
+import Input from '@/components/ui/input.jsx'
+
+import Label  from '@/components/ui/label.jsx'
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts'
 import { Activity, TrendingUp, BarChart3 } from 'lucide-react'
 import './App.css'
@@ -29,6 +30,7 @@ function App() {
     try {
       const response = await fetch(`${API_BASE_URL}/cities`)
       const data = await response.json()
+       console.log('Ciudades recibidas:', data)
       setCities(data)
       if (data.length > 0) {
         setSelectedCity(data[0])
@@ -123,18 +125,27 @@ function App() {
             <CardContent className="space-y-4">
               <div>
                 <Label htmlFor="city-select">Ciudad</Label>
-                <Select value={selectedCity} onValueChange={setSelectedCity}>
-                  <SelectTrigger>
-                    <SelectValue placeholder="Selecciona una ciudad" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {cities.map((city) => (
-                      <SelectItem key={city} value={city}>
-                        {formatCityName(city)}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
+                {cities.length > 0 ? (
+  <Select 
+    value={selectedCity} 
+    onValueChange={setSelectedCity} 
+    defaultValue={cities[0]}
+  >
+    <SelectTrigger>
+      <SelectValue placeholder="Selecciona una ciudad" />
+    </SelectTrigger>
+    <SelectContent>
+      {cities.map((city) => (
+        <SelectItem key={city} value={city}>
+          {formatCityName(city)}
+        </SelectItem>
+      ))}
+    </SelectContent>
+  </Select>
+) : (
+  <p>Cargando ciudades...</p>
+)}
+
               </div>
               
               <div>
