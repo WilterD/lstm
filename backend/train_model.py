@@ -23,7 +23,7 @@ def train_model(city_name):
     scaler = MinMaxScaler(feature_range=(0, 1))
     scaled_data = scaler.fit_transform(data)
 
-    sequence_length = 7  # Predict 1 week (7 days) based on previous 7 days
+    sequence_length = 7  
     X, y = create_sequences(scaled_data, sequence_length)
 
     model = Sequential()

@@ -107,7 +107,7 @@ const App = () => {
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({ test_days: 7 }),
+        body: JSON.stringify({ test_days: daysToPredict }),
       });
       
       if (!response.ok) throw new Error('Error al comparar modelos');
@@ -331,25 +331,53 @@ const App = () => {
         </div>
 
         {/* Stats */}
-        {predictions.length > 0 && activeTab === 'predict' && (
+        {((predictions.length > 0 && activeTab === 'predict') || (comparison.length > 0 && activeTab === 'compare')) && (
           <div className="mt-8 grid grid-cols-1 md:grid-cols-3 gap-4">
-            <div className="bg-white rounded-lg shadow p-6 text-center">
-              <h4 className="text-lg font-semibold text-gray-700">Predicciones</h4>
-              <p className="text-3xl font-bold text-blue-600">{predictions.length}</p>
-              <p className="text-sm text-gray-500">días predichos</p>
-            </div>
-            <div className="bg-white rounded-lg shadow p-6 text-center">
-              <h4 className="text-lg font-semibold text-gray-700">Nivel Promedio</h4>
-              <p className="text-3xl font-bold text-green-600">
-                {(predictions.reduce((acc, p) => acc + p.nivel, 0) / predictions.length).toFixed(2)}
-              </p>
-              <p className="text-sm text-gray-500">nivel predicho</p>
-            </div>
-            <div className="bg-white rounded-lg shadow p-6 text-center">
-              <h4 className="text-lg font-semibold text-gray-700">Ciudad</h4>
-              <p className="text-2xl font-bold text-purple-600">{cityNames[selectedCity]}</p>
-              <p className="text-sm text-gray-500">seleccionada</p>
-            </div>
+            {activeTab === 'predict' && (
+              <>
+                <div className="bg-white rounded-lg shadow p-6 text-center">
+                  <h4 className="text-lg font-semibold text-gray-700">Predicciones</h4>
+                  <p className="text-3xl font-bold text-blue-600">{predictions.length}</p>
+                  <p className="text-sm text-gray-500">días predichos</p>
+                </div>
+                <div className="bg-white rounded-lg shadow p-6 text-center">
+                  <h4 className="text-lg font-semibold text-gray-700">Nivel Promedio</h4>
+                  <p className="text-3xl font-bold text-green-600">
+                    {(predictions.reduce((acc, p) => acc + p.nivel, 0) / predictions.length).toFixed(2)}
+                  </p>
+                  <p className="text-sm text-gray-500">nivel predicho</p>
+                </div>
+                <div className="bg-white rounded-lg shadow p-6 text-center">
+                  <h4 className="text-lg font-semibold text-gray-700">Ciudad</h4>
+                  <p className="text-2xl font-bold text-purple-600">{cityNames[selectedCity]}</p>
+                  <p className="text-sm text-gray-500">seleccionada</p>
+                </div>
+              </>
+            )}
+            {activeTab === 'compare' && (
+              <>
+                <div className="bg-white rounded-lg shadow p-6 text-center">
+                  <h4 className="text-lg font-semibold text-gray-700">Comparación</h4>
+                  <p className="text-3xl font-bold text-orange-600">{comparison.length}</p>
+                  <p className="text-sm text-gray-500">días comparados</p>
+                </div>
+                <div className="bg-white rounded-lg shadow p-6 text-center">
+                  <h4 className="text-lg font-semibold text-gray-700">Precisión Promedio</h4>
+                  <p className="text-3xl font-bold text-green-600">
+                    {comparison.length > 0 ? 
+                      (100 - (comparison.reduce((acc, comp) => 
+                        acc + Math.abs((comp.actual - comp.predicho) / comp.actual * 100), 0
+                      ) / comparison.length)).toFixed(1) : 0}%
+                  </p>
+                  <p className="text-sm text-gray-500">precisión del modelo</p>
+                </div>
+                <div className="bg-white rounded-lg shadow p-6 text-center">
+                  <h4 className="text-lg font-semibold text-gray-700">Ciudad</h4>
+                  <p className="text-2xl font-bold text-purple-600">{cityNames[selectedCity]}</p>
+                  <p className="text-sm text-gray-500">analizada</p>
+                </div>
+              </>
+            )}
           </div>
         )}
       </div>
