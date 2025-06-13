@@ -1,317 +1,360 @@
-import { useState, useEffect } from 'react'
-import Button from '@/components/ui/button';
+import React, { useState, useEffect } from 'react';
+import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
+import { BarChart3, Droplets, Calendar, TrendingUp } from 'lucide-react';
 
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card.jsx'
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select.jsx'
-import Input from '@/components/ui/input.jsx'
+const App = () => {
+  const [cities, setCities] = useState([]);
+  const [selectedCity, setSelectedCity] = useState('');
+  const [predictions, setPredictions] = useState([]);
+  const [historicalData, setHistoricalData] = useState([]);
+  const [comparison, setComparison] = useState([]);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState('');
+  const [daysToPredict, setDaysToPredict] = useState(7);
+  const [activeTab, setActiveTab] = useState('predict');
 
-import Label  from '@/components/ui/label.jsx'
-import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts'
-import { Activity, TrendingUp, BarChart3 } from 'lucide-react'
-import './App.css'
+  const API_BASE = 'http://localhost:5000/api';
 
-const API_BASE_URL = 'http://localhost:5000/api'
-
-function App() {
-  const [cities, setCities] = useState([])
-  const [selectedCity, setSelectedCity] = useState('')
-  const [historicalData, setHistoricalData] = useState([])
-  const [predictions, setPredictions] = useState([])
-  const [comparison, setComparison] = useState([])
-  const [daysToPredict, setDaysToPredict] = useState(7)
-  const [testDays, setTestDays] = useState(7)
-  const [loading, setLoading] = useState(false)
-
+  // Cargar ciudades al montar el componente
   useEffect(() => {
-    fetchCities()
-  }, [])
+    fetchCities();
+  }, []);
 
   const fetchCities = async () => {
     try {
-      const response = await fetch(`${API_BASE_URL}/cities`)
-      const data = await response.json()
-       console.log('Ciudades recibidas:', data)
-      setCities(data)
+      const response = await fetch(`${API_BASE}/cities`);
+      if (!response.ok) throw new Error('Error al cargar ciudades');
+      const data = await response.json();
+      setCities(data);
       if (data.length > 0) {
-        setSelectedCity(data[0])
+        setSelectedCity(data[0]);
       }
-    } catch (error) {
-      console.error('Error fetching cities:', error)
+    } catch (err) {
+      setError('Error al conectar con el servidor: ' + err.message);
     }
-  }
+  };
 
-  const fetchHistoricalData = async (city) => {
+  const fetchHistoricalData = async (cityName) => {
     try {
-      const response = await fetch(`${API_BASE_URL}/data/${city}`)
-      const data = await response.json()
-      setHistoricalData(data)
-    } catch (error) {
-      console.error('Error fetching historical data:', error)
+      setLoading(true);
+      const response = await fetch(`${API_BASE}/data/${cityName}`);
+      if (!response.ok) throw new Error('Error al cargar datos históricos');
+      const data = await response.json();
+      
+      // Formatear datos para el gráfico
+      const formattedData = data
+        .filter(item => item[cityName] !== null)
+        .slice(-30) // Últimos 30 días
+        .map(item => ({
+          fecha: item.fecha,
+          nivel: item[cityName],
+          type: 'histórico'
+        }));
+      
+      setHistoricalData(formattedData);
+    } catch (err) {
+      setError('Error al cargar datos históricos: ' + err.message);
+    } finally {
+      setLoading(false);
     }
-  }
+  };
 
   const makePrediction = async () => {
-    if (!selectedCity) return
+    if (!selectedCity) return;
     
-    setLoading(true)
     try {
-      const response = await fetch(`${API_BASE_URL}/predict/${selectedCity}`, {
+      setLoading(true);
+      setError('');
+      
+      const response = await fetch(`${API_BASE}/predict/${selectedCity}`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({ days: daysToPredict }),
-      })
-      const data = await response.json()
-      setPredictions(data.predictions)
-    } catch (error) {
-      console.error('Error making prediction:', error)
+      });
+      
+      if (!response.ok) throw new Error('Error al hacer predicción');
+      const data = await response.json();
+      
+      const formattedPredictions = data.predictions.map(pred => ({
+        fecha: pred.fecha,
+        nivel: pred.predicted_level,
+        type: 'predicción'
+      }));
+      
+      setPredictions(formattedPredictions);
+      
+      // También cargar datos históricos para comparar
+      await fetchHistoricalData(selectedCity);
+      
+    } catch (err) {
+      setError('Error al hacer predicción: ' + err.message);
     } finally {
-      setLoading(false)
+      setLoading(false);
     }
-  }
+  };
 
-  const compareWithActual = async () => {
-    if (!selectedCity) return
+  const compareModels = async () => {
+    if (!selectedCity) return;
     
-    setLoading(true)
     try {
-      const response = await fetch(`${API_BASE_URL}/compare/${selectedCity}`, {
+      setLoading(true);
+      setError('');
+      
+      const response = await fetch(`${API_BASE}/compare/${selectedCity}`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({ test_days: testDays }),
-      })
-      const data = await response.json()
-      setComparison(data.comparison)
-    } catch (error) {
-      console.error('Error comparing predictions:', error)
+        body: JSON.stringify({ test_days: 7 }),
+      });
+      
+      if (!response.ok) throw new Error('Error al comparar modelos');
+      const data = await response.json();
+      
+      const formattedComparison = data.comparison.map(comp => ({
+        fecha: comp.fecha,
+        actual: comp.actual,
+        predicho: comp.predicted
+      }));
+      
+      setComparison(formattedComparison);
+      
+    } catch (err) {
+      setError('Error al comparar modelos: ' + err.message);
     } finally {
-      setLoading(false)
+      setLoading(false);
     }
-  }
+  };
 
-  useEffect(() => {
-    if (selectedCity) {
-      fetchHistoricalData(selectedCity)
-    }
-  }, [selectedCity])
+  const cityNames = {
+    ayacucho: 'Ayacucho',
+    caicara: 'Caicara',
+    ciudad_bolivar: 'Ciudad Bolívar',
+    palua: 'Palúa'
+  };
 
-  const formatCityName = (city) => {
-    return city.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase())
-  }
+  const combinedData = [...historicalData, ...predictions];
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 p-4">
-      <div className="max-w-7xl mx-auto">
+    <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100">
+      <div className="container mx-auto px-4 py-8">
+        {/* Header */}
         <div className="text-center mb-8">
-          <h1 className="text-4xl font-bold text-gray-900 mb-2 flex items-center justify-center gap-2">
-            <Activity className="h-8 w-8 text-blue-600" />
-            Predicción de Niveles de Agua
-          </h1>
-          <p className="text-lg text-gray-600">Sistema de predicción usando LSTM para múltiples ciudades</p>
+          <div className="flex items-center justify-center mb-4">
+            <Droplets className="h-10 w-10 text-blue-600 mr-3" />
+            <h1 className="text-4xl font-bold text-gray-800">
+              Predicción de Niveles de Agua
+            </h1>
+          </div>
+          <p className="text-gray-600 text-lg">
+            Sistema de predicción para ciudades de Venezuela
+          </p>
         </div>
 
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-8">
-          <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <TrendingUp className="h-5 w-5" />
-                Configuración
-              </CardTitle>
-              <CardDescription>Selecciona la ciudad y parámetros de predicción</CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <div>
-                <Label htmlFor="city-select">Ciudad</Label>
-                {cities.length > 0 ? (
-  <Select 
-    value={selectedCity} 
-    onValueChange={setSelectedCity} 
-    defaultValue={cities[0]}
-  >
-    <SelectTrigger>
-      <SelectValue placeholder="Selecciona una ciudad" />
-    </SelectTrigger>
-    <SelectContent>
-      {cities.map((city) => (
-        <SelectItem key={city} value={city}>
-          {formatCityName(city)}
-        </SelectItem>
-      ))}
-    </SelectContent>
-  </Select>
-) : (
-  <p>Cargando ciudades...</p>
-)}
+        {/* Error Message */}
+        {error && (
+          <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded mb-6">
+            {error}
+          </div>
+        )}
 
-              </div>
-              
-              <div>
-                <Label htmlFor="days-predict">Días a predecir</Label>
-                <Input
-                  id="days-predict"
-                  type="number"
-                  value={daysToPredict}
-                  onChange={(e) => setDaysToPredict(parseInt(e.target.value))}
-                  min="1"
-                  max="30"
-                />
-              </div>
-              
-              <Button 
-                onClick={makePrediction} 
-                disabled={loading || !selectedCity}
-                className="w-full"
+        {/* Controls */}
+        <div className="bg-white rounded-lg shadow-lg p-6 mb-8">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                Seleccionar Ciudad
+              </label>
+              <select
+                value={selectedCity}
+                onChange={(e) => setSelectedCity(e.target.value)}
+                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
               >
-                {loading ? 'Prediciendo...' : 'Hacer Predicción'}
-              </Button>
-            </CardContent>
-          </Card>
+                {cities.map(city => (
+                  <option key={city} value={city}>
+                    {cityNames[city] || city}
+                  </option>
+                ))}
+              </select>
+            </div>
 
-          <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <BarChart3 className="h-5 w-5" />
-                Comparación
-              </CardTitle>
-              <CardDescription>Compara predicciones con datos reales</CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <div>
-                <Label htmlFor="test-days">Días de prueba</Label>
-                <Input
-                  id="test-days"
-                  type="number"
-                  value={testDays}
-                  onChange={(e) => setTestDays(parseInt(e.target.value))}
-                  min="1"
-                  max="14"
-                />
-              </div>
-              
-              <Button 
-                onClick={compareWithActual} 
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                Días a Predecir
+              </label>
+              <input
+                type="number"
+                min="1"
+                max="30"
+                value={daysToPredict}
+                onChange={(e) => setDaysToPredict(parseInt(e.target.value))}
+                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+              />
+            </div>
+
+            <div className="flex items-end">
+              <button
+                onClick={makePrediction}
                 disabled={loading || !selectedCity}
-                className="w-full"
-                variant="outline"
+                className="w-full bg-blue-600 text-white px-4 py-2 rounded-md hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center"
               >
-                {loading ? 'Comparando...' : 'Comparar con Datos Reales'}
-              </Button>
-            </CardContent>
-          </Card>
+                {loading ? (
+                  <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-white"></div>
+                ) : (
+                  <>
+                    <TrendingUp className="h-4 w-4 mr-2" />
+                    Hacer Predicción
+                  </>
+                )}
+              </button>
+            </div>
+          </div>
 
-          <Card>
-            <CardHeader>
-              <CardTitle>Información</CardTitle>
-              <CardDescription>Datos de la ciudad seleccionada</CardDescription>
-            </CardHeader>
-            <CardContent>
-              {selectedCity && (
-                <div className="space-y-2">
-                  <p><strong>Ciudad:</strong> {formatCityName(selectedCity)}</p>
-                  <p><strong>Datos históricos:</strong> {historicalData.length} registros</p>
-                  <p><strong>Modelo:</strong> LSTM (7 días de secuencia)</p>
+          {/* Tabs */}
+          <div className="flex space-x-4 mb-4">
+            <button
+              onClick={() => setActiveTab('predict')}
+              className={`px-4 py-2 rounded-md ${
+                activeTab === 'predict'
+                  ? 'bg-blue-600 text-white'
+                  : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
+              }`}
+            >
+              <BarChart3 className="h-4 w-4 mr-2 inline" />
+              Predicciones
+            </button>
+            <button
+              onClick={() => {
+                setActiveTab('compare');
+                compareModels();
+              }}
+              className={`px-4 py-2 rounded-md ${
+                activeTab === 'compare'
+                  ? 'bg-blue-600 text-white'
+                  : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
+              }`}
+            >
+              <Calendar className="h-4 w-4 mr-2 inline" />
+              Comparación
+            </button>
+          </div>
+        </div>
+
+        {/* Charts */}
+        <div className="bg-white rounded-lg shadow-lg p-6">
+          {activeTab === 'predict' && (
+            <div>
+              <h3 className="text-xl font-semibold mb-4">
+                Datos Históricos y Predicciones - {cityNames[selectedCity] || selectedCity}
+              </h3>
+              {combinedData.length > 0 ? (
+                <ResponsiveContainer width="100%" height={400}>
+                  <LineChart data={combinedData}>
+                    <CartesianGrid strokeDasharray="3 3" />
+                    <XAxis 
+                      dataKey="fecha" 
+                      tick={{ fontSize: 12 }}
+                      tickFormatter={(value) => new Date(value).toLocaleDateString()}
+                    />
+                    <YAxis />
+                    <Tooltip 
+                      labelFormatter={(value) => new Date(value).toLocaleDateString()}
+                      formatter={(value, name) => [value?.toFixed(2), name === 'nivel' ? 'Nivel de Agua' : name]}
+                    />
+                    <Legend />
+                    <Line
+                      type="monotone"
+                      dataKey="nivel"
+                      stroke="#3B82F6"
+                      strokeWidth={2}
+                      dot={{ fill: '#3B82F6', strokeWidth: 2, r: 4 }}
+                      name="Nivel de Agua"
+                    />
+                  </LineChart>
+                </ResponsiveContainer>
+              ) : (
+                <div className="text-center py-12 text-gray-500">
+                  Selecciona una ciudad y haz clic en "Hacer Predicción" para ver los datos
                 </div>
               )}
-            </CardContent>
-          </Card>
+            </div>
+          )}
+
+          {activeTab === 'compare' && (
+            <div>
+              <h3 className="text-xl font-semibold mb-4">
+                Comparación Modelo vs Realidad - {cityNames[selectedCity] || selectedCity}
+              </h3>
+              {comparison.length > 0 ? (
+                <ResponsiveContainer width="100%" height={400}>
+                  <LineChart data={comparison}>
+                    <CartesianGrid strokeDasharray="3 3" />
+                    <XAxis 
+                      dataKey="fecha" 
+                      tick={{ fontSize: 12 }}
+                      tickFormatter={(value) => new Date(value).toLocaleDateString()}
+                    />
+                    <YAxis />
+                    <Tooltip 
+                      labelFormatter={(value) => new Date(value).toLocaleDateString()}
+                      formatter={(value, name) => [value?.toFixed(2), name === 'actual' ? 'Valor Real' : 'Predicción']}
+                    />
+                    <Legend />
+                    <Line
+                      type="monotone"
+                      dataKey="actual"
+                      stroke="#10B981"
+                      strokeWidth={2}
+                      dot={{ fill: '#10B981', strokeWidth: 2, r: 4 }}
+                      name="Valor Real"
+                    />
+                    <Line
+                      type="monotone"
+                      dataKey="predicho"
+                      stroke="#F59E0B"
+                      strokeWidth={2}
+                      strokeDasharray="5 5"
+                      dot={{ fill: '#F59E0B', strokeWidth: 2, r: 4 }}
+                      name="Predicción"
+                    />
+                  </LineChart>
+                </ResponsiveContainer>
+              ) : (
+                <div className="text-center py-12 text-gray-500">
+                  {loading ? 'Cargando comparación...' : 'Los datos de comparación aparecerán aquí'}
+                </div>
+              )}
+            </div>
+          )}
         </div>
 
-        {historicalData.length > 0 && (
-          <Card className="mb-6">
-            <CardHeader>
-              <CardTitle>Datos Históricos - {formatCityName(selectedCity)}</CardTitle>
-              <CardDescription>Niveles de agua registrados</CardDescription>
-            </CardHeader>
-            <CardContent>
-              <ResponsiveContainer width="100%" height={300}>
-                <LineChart data={historicalData.slice(-30)}>
-                  <CartesianGrid strokeDasharray="3 3" />
-                  <XAxis dataKey="fecha" />
-                  <YAxis />
-                  <Tooltip />
-                  <Legend />
-                  <Line 
-                    type="monotone" 
-                    dataKey={selectedCity} 
-                    stroke="#2563eb" 
-                    strokeWidth={2}
-                    name="Nivel de Agua"
-                  />
-                </LineChart>
-              </ResponsiveContainer>
-            </CardContent>
-          </Card>
-        )}
-
-        {predictions.length > 0 && (
-          <Card className="mb-6">
-            <CardHeader>
-              <CardTitle>Predicciones Futuras - {formatCityName(selectedCity)}</CardTitle>
-              <CardDescription>Predicciones para los próximos {daysToPredict} días</CardDescription>
-            </CardHeader>
-            <CardContent>
-              <ResponsiveContainer width="100%" height={300}>
-                <LineChart data={predictions}>
-                  <CartesianGrid strokeDasharray="3 3" />
-                  <XAxis dataKey="fecha" />
-                  <YAxis />
-                  <Tooltip />
-                  <Legend />
-                  <Line 
-                    type="monotone" 
-                    dataKey="predicted_level" 
-                    stroke="#dc2626" 
-                    strokeWidth={2}
-                    strokeDasharray="5 5"
-                    name="Predicción"
-                  />
-                </LineChart>
-              </ResponsiveContainer>
-            </CardContent>
-          </Card>
-        )}
-
-        {comparison.length > 0 && (
-          <Card>
-            <CardHeader>
-              <CardTitle>Comparación: Predicción vs Realidad - {formatCityName(selectedCity)}</CardTitle>
-              <CardDescription>Evaluación de la precisión del modelo</CardDescription>
-            </CardHeader>
-            <CardContent>
-              <ResponsiveContainer width="100%" height={300}>
-                <LineChart data={comparison}>
-                  <CartesianGrid strokeDasharray="3 3" />
-                  <XAxis dataKey="fecha" />
-                  <YAxis />
-                  <Tooltip />
-                  <Legend />
-                  <Line 
-                    type="monotone" 
-                    dataKey="actual" 
-                    stroke="#16a34a" 
-                    strokeWidth={2}
-                    name="Datos Reales"
-                  />
-                  <Line 
-                    type="monotone" 
-                    dataKey="predicted" 
-                    stroke="#dc2626" 
-                    strokeWidth={2}
-                    strokeDasharray="5 5"
-                    name="Predicción"
-                  />
-                </LineChart>
-              </ResponsiveContainer>
-            </CardContent>
-          </Card>
+        {/* Stats */}
+        {predictions.length > 0 && activeTab === 'predict' && (
+          <div className="mt-8 grid grid-cols-1 md:grid-cols-3 gap-4">
+            <div className="bg-white rounded-lg shadow p-6 text-center">
+              <h4 className="text-lg font-semibold text-gray-700">Predicciones</h4>
+              <p className="text-3xl font-bold text-blue-600">{predictions.length}</p>
+              <p className="text-sm text-gray-500">días predichos</p>
+            </div>
+            <div className="bg-white rounded-lg shadow p-6 text-center">
+              <h4 className="text-lg font-semibold text-gray-700">Nivel Promedio</h4>
+              <p className="text-3xl font-bold text-green-600">
+                {(predictions.reduce((acc, p) => acc + p.nivel, 0) / predictions.length).toFixed(2)}
+              </p>
+              <p className="text-sm text-gray-500">nivel predicho</p>
+            </div>
+            <div className="bg-white rounded-lg shadow p-6 text-center">
+              <h4 className="text-lg font-semibold text-gray-700">Ciudad</h4>
+              <p className="text-2xl font-bold text-purple-600">{cityNames[selectedCity]}</p>
+              <p className="text-sm text-gray-500">seleccionada</p>
+            </div>
+          </div>
         )}
       </div>
     </div>
-  )
-}
+  );
+};
 
-export default App
-
+export default App;
