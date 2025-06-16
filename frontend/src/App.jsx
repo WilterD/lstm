@@ -312,7 +312,11 @@ const App = () => {
                     <YAxis />
                     <Tooltip 
                       labelFormatter={(value) => new Date(value).toLocaleDateString()}
-                      formatter={(value, name) => [value?.toFixed(2), name === 'actual' ? 'Valor Real' : 'Predicción']}
+                      formatter={(value, name) => {
+                        if (name === 'Valor Real') return [value?.toFixed(2), 'Valor Real'];
+                        if (name === 'Predicción') return [value?.toFixed(2), 'Predicción'];
+                        return [value?.toFixed(2), name];
+                      }}
                     />
                     <Legend />
                     <Line
@@ -399,3 +403,4 @@ const App = () => {
 };
 
 export default App;
+
