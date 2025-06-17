@@ -144,6 +144,28 @@ const App = () => {
   // Para el gráfico de predicciones, combinar históricos + predicciones
   const combinedData = [...historicalData, ...predictions];
 
+  // Calcular el rango dinámico para el eje Y del gráfico de comparación
+  const getComparisonYDomain = () => {
+    if (!comparison || comparison.length === 0) return [0, 1];
+    const allValues = comparison.flatMap(d => [d.actual, d.predicho]);
+    const min = Math.min(...allValues);
+    const max = Math.max(...allValues);
+    // Margen para que no quede pegado al borde
+    const margin = (max - min) * 0.1 || 1;
+    return [min - margin, max + margin];
+  };
+
+  // Calcular el rango dinámico para el eje Y del gráfico de predicción
+  const getPredictionYDomain = () => {
+    if (!combinedData || combinedData.length === 0) return [0, 1];
+    const allValues = combinedData.map(d => d.nivel).filter(v => v !== undefined && v !== null);
+    if (allValues.length === 0) return [0, 1];
+    const min = Math.min(...allValues);
+    const max = Math.max(...allValues);
+    const margin = (max - min) * 0.1 || 1;
+    return [min - margin, max + margin];
+  };
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100">
       <div className="container mx-auto px-4 py-8">
@@ -268,7 +290,10 @@ const App = () => {
                       tick={{ fontSize: 12 }}
                       tickFormatter={(value) => new Date(value).toLocaleDateString()}
                     />
-                    <YAxis />
+                    <YAxis 
+                      domain={getPredictionYDomain()}
+                      tickFormatter={(value) => value?.toFixed(2)}
+                    />
                     <Tooltip 
                       labelFormatter={(value) => new Date(value).toLocaleDateString()}
                       formatter={(value, name) => [value?.toFixed(2), name === 'nivel' ? 'Nivel de Agua' : name]}
@@ -309,7 +334,10 @@ const App = () => {
                       tick={{ fontSize: 12 }}
                       tickFormatter={(value) => new Date(value).toLocaleDateString()}
                     />
-                    <YAxis />
+                    <YAxis 
+                      domain={getComparisonYDomain()}
+                      tickFormatter={(value) => value?.toFixed(2)}
+                    />
                     <Tooltip 
                       labelFormatter={(value) => new Date(value).toLocaleDateString()}
                       formatter={(value, name) => {
