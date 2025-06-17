@@ -177,7 +177,7 @@ const App = () => {
           <div className="flex items-center justify-center mb-4">
             <Droplets className="h-10 w-10 text-blue-600 mr-3" />
             <h1 className="text-4xl font-bold text-gray-800">
-              Predicción de Niveles de Agua
+              Predicción de Niveles de Agua del Orinoco
             </h1>
           </div>
           <p className="text-gray-600 text-lg">
@@ -218,7 +218,7 @@ const App = () => {
               </label>
               <input
                 type="number"
-                min="1"
+                min="7"
                 max="30"
                 value={daysToPredict}
                 onChange={(e) => setDaysToPredict(parseInt(e.target.value))}
