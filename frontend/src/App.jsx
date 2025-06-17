@@ -421,7 +421,7 @@ const App = () => {
                 </div>
                 <div className="bg-white rounded-lg shadow p-6 text-center">
                   <h4 className="text-lg font-semibold text-gray-700">Ciudad</h4>
-                  <p className="text-2xl font-bold text-purple-600">{cityNames[selectedCity]}</p>
+                  <p className="text-2xl font-bold text-purple-600">{displayedCity ? cityNames[displayedCity] : ''}</p>
                   <p className="text-sm text-gray-500">analizada</p>
                 </div>
               </>
