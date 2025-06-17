@@ -12,6 +12,7 @@ const App = () => {
   const [error, setError] = useState('');
   const [daysToPredict, setDaysToPredict] = useState(7);
   const [activeTab, setActiveTab] = useState('predict');
+  const [displayedCity, setDisplayedCity] = useState(''); // Nuevo estado para controlar la ciudad mostrada
 
   const API_BASE = 'http://localhost:5000/api';
 
@@ -87,6 +88,7 @@ const App = () => {
         }));
       
       setPredictions(formattedPredictions);
+      setDisplayedCity(selectedCity); // Actualizar la ciudad mostrada solo al hacer predicción
       
       // Cargar datos históricos con la misma cantidad de días para contexto
       await fetchHistoricalData(selectedCity, daysToPredict);
@@ -126,6 +128,7 @@ const App = () => {
         }));
       
       setComparison(formattedComparison);
+      setDisplayedCity(selectedCity); // Actualizar la ciudad mostrada al comparar
       
     } catch (err) {
       setError('Error al comparar modelos: ' + err.message);
@@ -276,7 +279,7 @@ const App = () => {
           {activeTab === 'predict' && (
             <div>
               <h3 className="text-xl font-semibold mb-4">
-                Predicciones para {daysToPredict} días - {cityNames[selectedCity] || selectedCity}
+                Predicciones para {daysToPredict} días - {displayedCity ? cityNames[displayedCity] : ''}
               </h3>
               <p className="text-sm text-gray-600 mb-4">
                 Datos históricos ({historicalData.length} días) + Predicciones ({predictions.length} días)
@@ -320,7 +323,7 @@ const App = () => {
           {activeTab === 'compare' && (
             <div>
               <h3 className="text-xl font-semibold mb-4">
-                Comparación para {daysToPredict} días - {cityNames[selectedCity] || selectedCity}
+                Comparación para {daysToPredict} días - {displayedCity ? cityNames[displayedCity] : ''}
               </h3>
               <p className="text-sm text-gray-600 mb-4">
                 Comparando {comparison.length} días de predicciones vs valores reales
@@ -394,7 +397,7 @@ const App = () => {
                 </div>
                 <div className="bg-white rounded-lg shadow p-6 text-center">
                   <h4 className="text-lg font-semibold text-gray-700">Ciudad</h4>
-                  <p className="text-2xl font-bold text-purple-600">{cityNames[selectedCity]}</p>
+                  <p className="text-2xl font-bold text-purple-600">{displayedCity ? cityNames[displayedCity] : ''}</p>
                   <p className="text-sm text-gray-500">seleccionada</p>
                 </div>
               </>
